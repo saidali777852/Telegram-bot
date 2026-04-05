@@ -8,12 +8,11 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Gemini API-ni sozlash
+# Gemini sozlamasi
 genai.configure(api_key=GEMINI_API_KEY)
 
-# DIQQAT: Agar 'gemini-1.5-flash' 404 bersa, 'gemini-1.5-pro' ni yozib ko'ring
-MODEL_NAME = 'gemini-1.5-flash'
-model = genai.GenerativeModel(MODEL_NAME)
+# 404 xatosini oldini olish uchun modelni to'liq nomi bilan chaqiramiz
+model = genai.GenerativeModel('models/gemini-1.5-flash')
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,26 +27,24 @@ async def analyze_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
         photo_file = await update.message.photo[-1].get_file()
         image_bytes = await photo_file.download_as_bytearray()
 
-        # Gemini formatiga o'tkazish
-        image_contents = [
-            {
-                "mime_type": "image/jpeg",
-                "data": bytes(image_bytes)
-            },
-            "Ushbu rasmni o'zbek tilida juda batafsil tasvirlab ber va matnlarni o'qi."
-        ]
+        # Gemini-ga yuborish uchun ma'lumotlar
+        prompt = "Ushbu rasmni o'zbek tilida batafsil tasvirlab ber va matnlarni o'qi."
+        image_data = {
+            "mime_type": "image/jpeg",
+            "data": bytes(image_bytes)
+        }
 
-        # Tahlil so'rovi
-        response = model.generate_content(image_contents)
-        
+        # Tahlil qilish
+        response = model.generate_content([prompt, image_data])
+
         if response.text:
             await update.message.reply_text(response.text)
         else:
-            await update.message.reply_text("Gemini javob qaytara olmadi.")
+            await update.message.reply_text("Gemini tushunarli javob qaytara olmadi.")
 
     except Exception as e:
         logging.error(f"Xatolik: {e}")
-        await update.message.reply_text(f"Xatolik: {str(e)}")
+        await update.message.reply_text(f"Xatolik yuz berdi: {str(e)}")
 
 if __name__ == '__main__':
     if TELEGRAM_TOKEN and GEMINI_API_KEY:
@@ -55,5 +52,3 @@ if __name__ == '__main__':
         app.add_handler(CommandHandler("start", start))
         app.add_handler(MessageHandler(filters.PHOTO, analyze_image))
         app.run_polling()
-    else:
-        print("XATO: Tokenlar topilmadi!")
