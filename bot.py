@@ -8,45 +8,43 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Gemini API-ni yangi standartda sozlash
+# Gemini sozlamasi
 genai.configure(api_key=GEMINI_API_KEY)
 
-# DIQQAT: models/ prefiksini olib tashladik va eng barqaror versiyani tanladik
-# Agar flash baribir ishlamasa, 'gemini-1.5-pro' ga o'zgartiring
-model = genai.GenerativeModel('gemini-1.5-flash')
+# Siz taklif qilgan yangi model nomi
+model = genai.GenerativeModel('gemini-2.0-flash-exp')
 
 logging.basicConfig(level=logging.INFO)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Salom! Yangi sozlamalar bilan bot ishga tushdi. Rasm yuboring.")
+    await update.message.reply_text("Salom! Gemini 2.0 modeli ishga tushdi. Rasm yuboring.")
 
 async def analyze_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        await update.message.reply_text("Rasm qabul qilindi, tahlil qilinmoqda...")
+        await update.message.reply_text("Rasm qabul qilindi, Gemini 2.0 tahlil qilmoqda...")
         
         photo_file = await update.message.photo[-1].get_file()
         image_bytes = await photo_file.download_as_bytearray()
         
-        # Tasvir qismini alohida formatda tayyorlaymiz
+        # Rasm formati
         image_part = {
             "mime_type": "image/jpeg",
             "data": bytes(image_bytes)
         }
         
-        # Muhim: generate_content ichida prompt va rasm ro'yxat ko'rinishida bo'lishi shart
+        # So'rov
         response = model.generate_content([
-            "Ushbu rasmni o'zbek tilida batafsil tasvirlab ber.", 
+            "Ushbu rasmni o'zbek tilida juda batafsil tasvirlab ber va matnlarni o'qi.",
             image_part
         ])
         
         if response.text:
             await update.message.reply_text(response.text)
         else:
-            await update.message.reply_text("Gemini tahlil natijasini qaytarmadi.")
+            await update.message.reply_text("Natija olinmadi.")
             
     except Exception as e:
         logging.error(f"Xatolik: {e}")
-        # Xatoni aniq ko'rish uchun botga yuboramiz
         await update.message.reply_text(f"Xatolik: {str(e)}")
 
 if __name__ == '__main__':
